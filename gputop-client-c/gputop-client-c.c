@@ -71,6 +71,7 @@ struct oa_sample {
    uint8_t oa_report[];
 };
 
+static struct gputop_devinfo gputop_devinfo;
 
 static void __attribute__((noreturn))
 assert_not_reached(void)
