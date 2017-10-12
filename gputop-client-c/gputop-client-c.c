@@ -390,7 +390,7 @@ gputop_cc_set_system_property_string(const char *name, const char *value)
 }
 
 static void
-register_metric_set(struct gputop_metric_set *metric_set, void *data)
+register_metric_set(const struct gputop_metric_set *metric_set, void *data)
 {
     gputop_cr_index_metric_set(metric_set->hw_config_guid, metric_set);
 }
@@ -402,7 +402,7 @@ gputop_cc_update_system_metrics(void)
     struct {
         char *devname;
         void (*add_metrics_cb)(struct gputop_devinfo *devinfo,
-                               void (*register_metric_set)(struct gputop_metric_set *,
+                               void (*register_metric_set)(const struct gputop_metric_set *,
                                                            void *),
                                void *data);
     } devname_to_metric_func[] = {
