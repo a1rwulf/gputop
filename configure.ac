@@ -82,6 +82,8 @@ dnl ================================================================
 AC_PROG_CC
 AC_PROG_CXX
 
+AC_CHECK_TOOL([LEG], [leg])
+
 AX_PTHREAD
 
 AC_PROG_LIBTOOL
@@ -137,6 +139,20 @@ AS_IF([test "$enable_gl" = "yes"],
 	AC_DEFINE([SUPPORT_GL], [1], [Support intercepting GL applications])
       ])
 AM_CONDITIONAL(SUPPORT_GL, [test "$enable_gl" = "yes" ])
+
+AC_ARG_ENABLE(
+  [ui],
+  [AC_HELP_STRING([--enable-ui=@<:@no/yes@:>@],
+                  [Build ui @<:@default=auto@:>@])],
+  [enable_ui="$enableval"],
+  [enable_ui="no"]
+)
+AS_IF([test "$enable_ui" = "yes"],
+      [
+        PKG_CHECK_MODULES(GPUTOP_UI, [gtk+-3.0 cogl-2.0-experimental libsoup-2.4])
+        AC_DEFINE([ENABLE_UI], [1], [Build web UI])
+      ])
+AM_CONDITIONAL(ENABLE_UI, [test "$enable_ui" = "yes"])
 
 AC_ARG_ENABLE(
   [web-ui],
@@ -198,6 +214,7 @@ gputop-server/Makefile
 gputop-server/registry/Makefile
 gputop-client/Makefile
 gputop-client-c/Makefile
+gputop-ui/Makefile
 gputop-webui/Makefile
 gputop-csv/Makefile
 gputop-tracepoints/Makefile
@@ -208,6 +225,7 @@ echo "GPU Top configured:"
 echo ""
 echo "   Optional Features: ${FEATURES}"
 echo "        GL Intercept: ${enable_gl}"
+echo "            ImGui UI: ${enable_ui}"
 echo "              Web UI: ${enable_web_ui}"
 echo "               Tools: ${enable_node_clients} $NODE_WARNING"
 echo ""
