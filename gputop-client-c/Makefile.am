@@ -20,6 +20,23 @@ package.json: $(top_srcdir)/scripts/gen-template.py Makefile.am $(top_srcdir)/Ma
 binding.gyp: $(top_srcdir)/scripts/gen-template.py Makefile.am $(top_srcdir)/Makefile.generated binding.gyp.in
 	$(PYTHON2) $(PYTHON_FLAGS) $(top_srcdir)/scripts/gen-template.py --template=$(@).in --out=$(@) $(oa_generated_sources)
 
+noinst_LTLIBRARIES = libgputop-client.la
+
+libgputop_client_la_CPPFLAGS = \
+	-DGPUTOP_CLIENT \
+	\
+	-I$(top_srcdir)/mesa/include \
+	-I$(top_srcdir)/mesa/include/drm-uapi \
+	-I$(top_srcdir)/mesa/src \
+	-I$(top_srcdir)/mesa/src/intel \
+	-I$(top_srcdir)/mesa/src/util
+libgputop_client_la_SOURCES = \
+	gputop-oa-counters.c \
+	gputop-oa-counters.h \
+	gputop-oa-metrics.h \
+	gputop-util.h \
+	$(oa_generated_sources)
+
 if ENABLE_WEBUI
 remotedir = $(datadir)/remote
 nobase_dist_remote_DATA = \
