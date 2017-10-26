@@ -1181,6 +1181,7 @@ handle_get_features(h2o_websocket_conn_t *conn,
     Gputop__Message pb_message = GPUTOP__MESSAGE__INIT;
     Gputop__Features pb_features = GPUTOP__FEATURES__INIT;
     Gputop__DevInfo pb_devinfo = GPUTOP__DEV_INFO__INIT;
+    Gputop__DevTopology pb_topology = GPUTOP__DEV_TOPOLOGY__INIT;
     char *notices[] = {
         "RC6 power saving mode disabled"
     };
@@ -1210,6 +1211,18 @@ handle_get_features(h2o_websocket_conn_t *conn,
 
     pb_devinfo.devname = (char *) devinfo->devname;
     pb_devinfo.prettyname = (char *) devinfo->prettyname;
+
+    const struct gputop_devtopology *devtopology = &devinfo->topology;
+    pb_topology.n_slices = devtopology->n_slices;
+    pb_topology.n_subslices = devtopology->n_subslices;
+    pb_topology.n_eus_per_subslice = devtopology->n_eus_per_subslice;
+    pb_topology.slices_mask.len = ARRAY_SIZE(devtopology->slices_mask);
+    pb_topology.slices_mask.data = (uint8_t *) devtopology->slices_mask;
+    pb_topology.subslices_mask.len = ARRAY_SIZE(devtopology->subslices_mask);
+    pb_topology.subslices_mask.data = (uint8_t *) devtopology->subslices_mask;
+    pb_topology.eus_mask.len = ARRAY_SIZE(devtopology->eus_mask);
+    pb_topology.eus_mask.data = (uint8_t *) devtopology->eus_mask;
+    pb_devinfo.topology = &pb_topology;
 
     pb_features.fake_mode = gputop_fake_mode;
 

@@ -34,6 +34,17 @@
 extern "C" {
 #endif
 
+struct gputop_devtopology {
+    uint32_t n_slices;
+    uint32_t n_subslices;
+    uint32_t n_eus_per_subslice;
+
+    /* Max values should be enough for a while. */
+    uint8_t slices_mask[1];
+    uint8_t subslices_mask[10];
+    uint8_t eus_mask[128];
+};
+
 struct gputop_devinfo {
     char devname[20];
     char prettyname[100];
@@ -52,6 +63,8 @@ struct gputop_devinfo {
     uint64_t gt_max_freq;
 
     bool has_dynamic_configs;
+
+    struct gputop_devtopology topology;
 };
 
 typedef enum {

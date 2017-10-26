@@ -720,6 +720,25 @@ register_metric_set(const struct gputop_metric_set *metric_set, void *data)
                              (void *) metric_set);
 }
 
+static void
+devinfo_build_topology(const struct gen_device_info *devinfo)
+{
+    memset(&gputop_devinfo.topology, 0, sizeof(gputop_devinfo.topology));
+
+    gputop_devinfo.topology.n_slices = devinfo->num_slices;
+    gputop_devinfo.topology.n_subslices = devinfo->num_subslices[0];
+    gputop_devinfo.topology.n_eus_per_subslice = 8; // TODO.
+
+    for (int s = 0; s < devinfo->num_slices; s++)
+        gputop_devinfo.topology.slices_mask[0] |= 1U << s;
+    for (int s = 0; s < devinfo->num_slices; s++) {
+        for (int ss = 0; ss < devinfo->num_subslices[s]; ss++) {
+            gputop_devinfo.topology.subslices_mask[s] |= 1U << ss;
+            gputop_devinfo.topology.eus_mask[s * gputop_devinfo.topology.n_subslices + ss] = 0xff;
+        }
+    }
+}
+
 static bool
 init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 {
@@ -743,7 +762,7 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 	gputop_devinfo.timestamp_frequency = devinfo->timestamp_frequency;
     } else {
 	drm_i915_getparam_t gp;
-	int revision;
+	int revision, timestamp_frequency;
 
 	gputop_devinfo.gen = devinfo->gen;
 	gputop_devinfo.n_eu_slices = devinfo->num_slices;
@@ -759,6 +778,16 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 	gp.value = &revision;
 	perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
 	gputop_devinfo.revision = revision;
+
+        /* This might not be available on all kernels, save the value
+         * only if the ioctl succeeds.
+         */
+        gp.param = I915_PARAM_CS_TIMESTAMP_FREQUENCY;
+	gp.value = &timestamp_frequency;
+	if (perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0)
+          gputop_devinfo.timestamp_frequency = timestamp_frequency;
+
+        devinfo_build_topology(devinfo);
 
 	if (devinfo->is_haswell) {
 	    gputop_devinfo.n_eus =

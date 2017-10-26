@@ -4,6 +4,16 @@ package gputop;
  * To Browser
  */
 
+message DevTopology
+{
+    required uint32 n_slices = 1;
+    required uint32 n_subslices = 2;
+    required uint32 n_eus_per_subslice = 3;
+    required bytes slices_mask = 4;
+    required bytes subslices_mask = 5;
+    required bytes eus_mask = 6;
+}
+
 message DevInfo
 {
     required uint32 devid = 1;
@@ -19,6 +29,7 @@ message DevInfo
     required uint64 gt_max_freq=11;
     required string devname = 12;
     required string prettyname = 13;
+    required DevTopology topology = 14;
 }
 
 enum GLCounterType
