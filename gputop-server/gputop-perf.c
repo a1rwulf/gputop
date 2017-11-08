@@ -784,6 +784,32 @@ i915_query_topology(int drm_fd)
 
     topology->n_subslices /= topology->n_slices;
     topology->n_eus_per_subslice = 8; /* TODO */
+
+    /* engines */
+    DIR *engines_dir;
+    struct dirent *entry;
+
+    snprintf(path, sizeof(path), "/sys/class/drm/card%d/engines", drm_card);
+    engines_dir = opendir(path);
+    assert(engines_dir != NULL);
+
+    assert(ARRAY_SIZE(gputop_devinfo.topology.engines) >= I915_ENGINE_CLASS_VIDEO_ENHANCE + 1);
+
+    while ((entry = readdir(engines_dir))) {
+	if (entry->d_type != DT_DIR)
+            continue;
+
+        uint64_t engine_class = 0;
+        snprintf(path, sizeof(path), "engines/%s/class", entry->d_name);
+        if (!sysfs_card_read(path, &engine_class))
+            continue;
+        if (engine_class >= ARRAY_SIZE(gputop_devinfo.topology.engines))
+            continue;
+
+        topology->engines[engine_class]++;
+    }
+
+    closedir(engines_dir);
 }
 
 static bool
