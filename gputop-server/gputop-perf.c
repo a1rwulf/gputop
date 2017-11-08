@@ -740,6 +740,53 @@ devinfo_build_topology(const struct gen_device_info *devinfo)
 }
 
 static bool
+i915_has_query_info(int drm_fd)
+{
+    uint64_t slices_mask;
+
+    return sysfs_card_read("topology/enabled_mask", &slices_mask);
+}
+
+static void
+i915_query_topology(int drm_fd)
+{
+    char path[512];
+    uint64_t slices_mask;
+    struct gputop_devtopology *topology = &gputop_devinfo.topology;
+
+    assert(drm_card >= 0);
+    if (sysfs_card_read("topology/enabled_mask", &slices_mask))
+        topology->slices_mask[0] = slices_mask;
+
+    topology->n_slices = 0;
+    while (true) {
+        uint64_t subslices_mask;
+
+        snprintf(path, sizeof(path), "topology/slice%u/enabled_mask", topology->n_slices);
+        if (!sysfs_card_read(path, &subslices_mask))
+            break;
+
+        int ss = 0;
+        while (true) {
+            uint64_t eu_mask;
+
+            snprintf(path, sizeof(path), "topology/slice%u/subslice%i/enabled_mask",
+                     topology->n_slices, ss);
+            if (!sysfs_card_read(path, &eu_mask))
+                break;
+
+            topology->eus_mask[topology->n_subslices++] = eu_mask;
+            ss++;
+        }
+
+        topology->subslices_mask[topology->n_slices++] = subslices_mask;
+    }
+
+    topology->n_subslices /= topology->n_slices;
+    topology->n_eus_per_subslice = 8; /* TODO */
+}
+
+static bool
 init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 {
     memset(&gputop_devinfo, 0, sizeof(gputop_devinfo));
@@ -787,7 +834,10 @@ init_dev_info(int drm_fd, uint32_t devid, const struct gen_device_info *devinfo)
 	if (perf_ioctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp) == 0)
           gputop_devinfo.timestamp_frequency = timestamp_frequency;
 
-        devinfo_build_topology(devinfo);
+        if (i915_has_query_info(drm_fd))
+            i915_query_topology(drm_fd);
+        else
+            devinfo_build_topology(devinfo);
 
 	if (devinfo->is_haswell) {
 	    gputop_devinfo.n_eus =
