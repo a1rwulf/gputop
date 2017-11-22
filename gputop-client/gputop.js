@@ -1305,8 +1305,8 @@ Gputop.prototype.open_tracepoint = function(tracepoint_info, config, onopen, onc
 
         this.cc_stream_ptr_to_obj_map[stream.cc_stream_ptr_] = stream;
 
-        if (callback != undefined)
-            callback(stream);
+        // if (callback != undefined)
+        //     callback(stream);
     }
 
     if (config.paused) {
