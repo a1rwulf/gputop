@@ -26,6 +26,9 @@
 const Gputop = require('gputop');
 const ArgumentParser = require('argparse').ArgumentParser;
 
+/* Don't want to pollute CSV output to stdout with log messages... */
+var stderr_log = new console.Console(process.stderr, process.stderr);
+
 function GputopTool()
 {
     Gputop.Gputop.call(this);
@@ -35,30 +38,65 @@ function GputopTool()
     this.counters_ = [];
 
     this.write_queued_ = false;
+
+    this.console = {
+        log: (msg) => {
+            if (args.debug)
+                stderr_log.log(msg);
+        },
+        warn: (msg) => {
+            if (args.debug)
+                stderr_log.warn(msg);
+        },
+        error: (msg) => {
+            stderr_log.error(msg);
+        },
+    };
 }
 
 GputopTool.prototype = Object.create(Gputop.Gputop.prototype);
 
-GputopTool.prototype.update_features = function(features)
-{
+GputopTool.prototype.list_tracepoints = function(features) {
+    stderr_log.log('List of tracepoints:');
+    for (var i = 0; i < features.tracepoints.length; i++) {
+        stderr_log.log(features.tracepoints[i]);
+    }
+};
+
+GputopTool.prototype.update_features = function(features) {
     if (features.tracepoints.length === 0) {
         console.error("No tracepoints supported");
         process.exit(1);
         return;
     }
 
-    //for (var i = 0; i < features.tracepoints.length; i++) {
-    //    console.log("Tracepoint: " + features.tracepoints[i]);
-    //}
+    var tracepoints = args.tracepoints.split(",");
 
-    //this.get_tracepoint_info("i915/i915_flip_complete", (info) => {
-    this.get_tracepoint_info("i915/i915_gem_request_add", (info) => {
-        console.log("i915 tracepoint info = " + JSON.stringify(info));
+    if (tracepoints.length == 0) {
+        this.list_tracepoints(features)
+        process.exit(1);
+        return;
+    }
 
-        this.open_tracepoint(info, {}, () => {
-            console.log("Tracepoint opened");
-        });
-    });
+    if (args.tracepoint_info) {
+        for (var i = 0; i < tracepoints.length; i++) {
+            this.get_tracepoint_info(tracepoints[i], (info) => {
+                stderr_log.log("i915 tracepoint info = " + JSON.stringify(info, 2));
+            });
+        }
+        process.exit(0);
+        return;
+    }
+
+    if (args.record) {
+        for (var i = 0; i < tracepoints.length; i++) {
+            this.get_tracepoint_info(tracepoints[i], (info) => {
+                this.open_tracepoint(info, {}, () => {
+                    stderr_log.log("Tracepoint opened");
+                });
+            });
+        }
+    }
 }
 
 
@@ -76,12 +114,45 @@ parser.addArgument(
     }
 );
 
+parser.addArgument(
+    [ '-d', '--debug' ],
+    {
+        help: "Verbose debug output",
+        action: 'storeTrue',
+        defaultValue: false
+    }
+);
+
+parser.addArgument(
+    [ '-i', '--tracepoint-info' ],
+    {
+        help: "Print information about a tracepoint",
+        action: 'storeTrue',
+        defaultValue: false
+    }
+);
+
+parser.addArgument(
+    [ '-s', '--search' ],
+    {
+        help: "Search tracepoints",
+        defaultValue: undefined
+    }
+);
+
+parser.addArgument(
+    [ '-t', '--tracepoints' ],
+    {
+        help: "A list of tracepoints",
+        defaultValue: [],
+        nargs: '?'
+    }
+);
+
 var args = parser.parseArgs();
 
 var gputop = new GputopTool();
 
 gputop.connect(args.address, () => {
-    //console.log("Connected");
+    stderr_log.log("Connected");
 });
-
-
