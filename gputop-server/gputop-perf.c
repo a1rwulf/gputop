@@ -397,7 +397,9 @@ struct gputop_perf_stream *
 gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 				int period_exponent,
 				struct ctx_handle *ctx,
-				void (*ready_cb)(struct gputop_perf_stream *),
+                                bool cpu_timestamps,
+                                bool gpu_timestamps,
+                                void (*ready_cb)(struct gputop_perf_stream *),
 				bool overwrite,
 				char **error)
 {
@@ -444,6 +446,16 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
 		ctx->fd, ctx->id);
 	}
 
+        if (cpu_timestamps) {
+            properties[p++] = DRM_I915_PERF_PROP_SAMPLE_SYSTEM_TS;
+            properties[p++] = true;
+        }
+
+        if (gpu_timestamps) {
+            properties[p++] = DRM_I915_PERF_PROP_SAMPLE_GPU_TS;
+            properties[p++] = true;
+        }
+
 	param.properties_ptr = (uintptr_t)properties;
 	param.num_properties = p / 2;
 
@@ -474,7 +486,9 @@ gputop_open_i915_perf_oa_stream(struct gputop_metric_set *metric_set,
     /* We double buffer the samples we read from the kernel so
      * we can maintain a stream->last pointer for calculating
      * counter deltas */
-    stream->oa.buf_sizes = MAX_I915_PERF_OA_SAMPLE_SIZE * 100;
+    stream->oa.buf_sizes = (MAX_I915_PERF_OA_SAMPLE_SIZE +
+                            (cpu_timestamps ? 8 : 0) +
+                            (gpu_timestamps ? 8 : 0)) * 100;
     stream->oa.bufs[0] = xmalloc0(stream->oa.buf_sizes);
     stream->oa.bufs[1] = xmalloc0(stream->oa.buf_sizes);
 
