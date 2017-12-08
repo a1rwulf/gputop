@@ -139,6 +139,32 @@ gputop_cc_oa_report_get_timestamp(const uint8_t *report)
     return ((uint32_t *)report)[1];
 }
 
+static inline const char *
+gputop_cc_oa_report_get_reason(const struct gputop_devinfo *devinfo,
+                               const uint8_t *report)
+{
+    const uint32_t *report32 = (const uint32_t *) report;
+    uint32_t reason;
+
+    if (devinfo->gen < 8)
+        return "unknown (gen7)";
+
+    reason = ((report32[0] >> 19) & 0x3f);
+    if (reason & (1<<0))
+        return "timer";
+    if (reason & (1<<1))
+        return "internal trigger 1";
+    if (reason & (1<<2))
+        return "internal trigger 2";
+    if (reason & (1<<3))
+        return "context switch";
+    if (reason & (1<<4))
+        return "GO 1->0 transition (enter RC6)";
+    if (reason & (1<<5))
+        return "[un]slice clock ratio change";
+    return "unknown";
+}
+
 struct gputop_i915_perf_configuration {
     bool oa_reports;
     bool cpu_timestamps;
