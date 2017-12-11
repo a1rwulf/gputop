@@ -119,8 +119,10 @@ gputop_cc_oa_accumulate_reports(struct gputop_cc_oa_accumulator *accumulator,
         return false;
     }
 
-    if (!accumulator->clock.devinfo)
-        gputop_u32_clock_init(&accumulator->clock, accumulator->devinfo, start[1]);
+    if (!accumulator->clock.devinfo) {
+        gputop_u32_clock_init(&accumulator->clock, accumulator->devinfo,
+                              gputop_cc_oa_report_get_timestamp(report0));
+    }
 
     switch (metric_set->perf_oa_format) {
     case I915_OA_FORMAT_A32u40_A4u32_B8_C8:
